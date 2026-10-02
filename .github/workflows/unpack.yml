@@ -1,0 +1,29 @@
+name: Prepare RouterPlus
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract project
+        run: |
+          unzip -o RouterPlus_v1.zip -d .
+
+      - name: Commit project files
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Add RouterPlus project files"
+          git push
