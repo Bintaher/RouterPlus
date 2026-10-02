@@ -9,110 +9,316 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { RouterPlusApp() }
-    }
-}
 
-@Composable
-fun RouterPlusApp() {
-    var screen by remember { mutableStateOf("welcome") }
-    var networkName by remember { mutableStateOf("") }
-    var ip by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
-    MaterialTheme {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            when (screen) {
-                "welcome" -> WelcomeScreen { screen = "add" }
-                "add" -> AddNetworkScreen(
-                    networkName, { networkName = it },
-                    ip, { ip = it },
-                    username, { username = it },
-                    password, { password = it },
-                    onSave = { screen = "dashboard" }
-                )
-                else -> DashboardScreen(networkName, ip)
-            }
+        setContent {
+            RouterPlusApp()
         }
     }
 }
 
 @Composable
-fun WelcomeScreen(onStart: () -> Unit) {
+fun RouterPlusApp() {
+
+    var screen by remember { mutableStateOf("login") }
+
+    MaterialTheme {
+
+        CompositionLocalProvider(
+            LocalLayoutDirection provides LayoutDirection.Rtl
+        ) {
+
+            Surface(
+                modifier = Modifier.fillMaxSize()
+            ) {
+
+                when (screen) {
+
+                    "login" -> LoginScreen(
+                        onLogin = {
+                            screen = "add"
+                        },
+                        onCreateAccount = {
+                            // سيتم ربط إنشاء الحساب لاحقًا
+                        },
+                        onForgotPassword = {
+                            // سيتم إضافة استعادة كلمة المرور لاحقًا
+                        }
+                    )
+
+                    "add" -> AddRouterScreen(
+                        onSaved = {
+                            screen = "dashboard"
+                        }
+                    )
+
+                    "dashboard" -> DashboardScreen()
+                }
+            }
+        }
+    }
+}
+
+
+/* =========================
+   تسجيل الدخول
+   ========================= */
+
+@Composable
+fun LoginScreen(
+    onLogin: () -> Unit,
+    onCreateAccount: () -> Unit,
+    onForgotPassword: () -> Unit
+) {
+
+    var emailOrPhone by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(28.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Router Plus", fontSize = 36.sp)
-        Spacer(Modifier.height(12.dp))
-        Text("إدارة شبكات MikroTik بسهولة وسرعة", fontSize = 18.sp)
-        Spacer(Modifier.height(40.dp))
+
+        Text(
+            text = "Router Plus",
+            fontSize = 38.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "إدارة MikroTik بسهولة واحترافية",
+            fontSize = 17.sp
+        )
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        OutlinedTextField(
+            value = emailOrPhone,
+            onValueChange = { emailOrPhone = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = {
+                Text("البريد الإلكتروني أو رقم الهاتف")
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email
+            ),
+            shape = RoundedCornerShape(14.dp)
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = {
+                Text("كلمة المرور")
+            },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            shape = RoundedCornerShape(14.dp)
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        TextButton(
+            onClick = onForgotPassword,
+            modifier = Modifier.align(Alignment.Start)
+        ) {
+            Text("نسيت كلمة المرور؟")
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
         Button(
-            onClick = onStart,
-            modifier = Modifier.fillMaxWidth().height(54.dp),
+            onClick = onLogin,
+            enabled = emailOrPhone.isNotBlank() && password.isNotBlank(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
             shape = RoundedCornerShape(16.dp)
-        ) { Text("ابدأ الآن", fontSize = 18.sp) }
+        ) {
+            Text(
+                text = "تسجيل الدخول",
+                fontSize = 18.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Text("ليس لديك حساب؟")
+
+            TextButton(
+                onClick = onCreateAccount
+            ) {
+                Text(
+                    text = "إنشاء حساب",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
 
+
+/* =========================
+   إضافة راوتر MikroTik
+   ========================= */
+
 @Composable
-fun AddNetworkScreen(
-    name: String, onName: (String) -> Unit,
-    ip: String, onIp: (String) -> Unit,
-    user: String, onUser: (String) -> Unit,
-    pass: String, onPass: (String) -> Unit,
-    onSave: () -> Unit
+fun AddRouterScreen(
+    onSaved: () -> Unit
 ) {
+
+    var routerName by remember { mutableStateOf("") }
+    var ip by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(35.dp))
-        Text("إضافة شبكة MikroTik", fontSize = 28.sp)
-        Spacer(Modifier.height(24.dp))
-        OutlinedTextField(name, onName, Modifier.fillMaxWidth(), label = { Text("اسم الشبكة") }, singleLine = true)
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(ip, onIp, Modifier.fillMaxWidth(), label = { Text("عنوان IP الشبكة") }, singleLine = true)
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(user, onUser, Modifier.fillMaxWidth(), label = { Text("اسم المستخدم") }, singleLine = true)
-        Spacer(Modifier.height(12.dp))
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        Text(
+            text = "إضافة راوتر",
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "أضف بيانات MikroTik للبدء"
+        )
+
+        Spacer(modifier = Modifier.height(28.dp))
+
         OutlinedTextField(
-            pass, onPass, Modifier.fillMaxWidth(),
+            value = routerName,
+            onValueChange = { routerName = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("اسم الراوتر") },
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = ip,
+            onValueChange = { ip = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("IP / Host") },
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("اسم المستخدم") },
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            modifier = Modifier.fillMaxWidth(),
             label = { Text("كلمة المرور") },
             singleLine = true,
-            visualTransformation = PasswordVisualTransformation()
+            visualTransformation = PasswordVisualTransformation(),
+            shape = RoundedCornerShape(14.dp)
         )
-        Spacer(Modifier.height(28.dp))
+
+        Spacer(modifier = Modifier.height(26.dp))
+
         Button(
-            onClick = onSave,
-            enabled = name.isNotBlank() && ip.isNotBlank() && user.isNotBlank(),
-            modifier = Modifier.fillMaxWidth().height(54.dp),
+            onClick = onSaved,
+            enabled = routerName.isNotBlank() &&
+                    ip.isNotBlank() &&
+                    username.isNotBlank(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
             shape = RoundedCornerShape(16.dp)
-        ) { Text("حفظ والاتصال", fontSize = 18.sp) }
+        ) {
+
+            Text(
+                text = "اختبار الاتصال وحفظ",
+                fontSize = 18.sp
+            )
+        }
     }
 }
 
+
+/* =========================
+   لوحة التحكم
+   ========================= */
+
 @Composable
-fun DashboardScreen(name: String, ip: String) {
+fun DashboardScreen() {
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(45.dp))
-        Text("لوحة التحكم", fontSize = 30.sp)
-        Spacer(Modifier.height(20.dp))
-        Text("الشبكة: $name", fontSize = 19.sp)
-        Text("IP: $ip", fontSize = 17.sp)
-        Spacer(Modifier.height(30.dp))
-        Text("تم حفظ الشبكة بنجاح", fontSize = 18.sp)
+
+        Spacer(modifier = Modifier.height(50.dp))
+
+        Text(
+            text = "Router Plus",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(
+            text = "لوحة التحكم",
+            fontSize = 24.sp
+        )
+
+        Spacer(modifier = Modifier.height(30.dp))
+
+        Text(
+            text = "مرحبًا بك في Router Plus"
+        )
     }
 }
